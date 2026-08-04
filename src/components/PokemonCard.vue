@@ -1,6 +1,6 @@
 <template>
 <div class="roundde-lg border border-gray-300 p-4 text-center bg-white shadow-md hover:shadow-lg transition-all duration-300 hover:border-blue-500">
-    <img :src="pokemon.image" :alt="pokemon.name" class="w-24 h-24 mx-auto transition-transform duration-500 hover:rotate-3 hover:scale-110">
+    <img :src="pokemon.image || fallbackImage" :alt="pokemon.name" class="w-24 h-24 mx-auto transition-transform duration-500 hover:rotate-3 hover:scale-110">
     <h2 class="text-xl font-bold mt-2 text-gray-800">{{ pokemon.name }}</h2>
 
     <div class="mt-2 space-y-1">
@@ -23,6 +23,8 @@
 <script setup>
 
 import { defineProps } from "vue";
+
+const fallbackImage = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png";
 
 defineProps({
     pokemon:Object

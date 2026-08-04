@@ -13,7 +13,7 @@
     <!-- Aucun Pokémon trouvé -->
     <div v-else-if="filteredPokemons.length === 0" class="text-center">
       <p class="text-xl text-gray-500">
-        Aucun Pokémon trouvé pour votre recherche
+        {{ errorMessage || 'Aucun Pokémon trouvé pour votre recherche' }}
       </p>
     </div>
 
@@ -52,18 +52,54 @@ import PokemonSearch from "./components/PokemonSearch.vue";
 const pokemons = ref([]);
 const searchQuery = ref("");
 const loading = ref(true);
+const errorMessage = ref("");
 
-onMounted(async () => {
+const loadPokemons = async () => {
+  loading.value = true;
+  errorMessage.value = "";
+
   try {
-    const response = await fetch("https://pokebuildapi.fr/api/v1/pokemon");
-    pokemons.value = await response.json();
-    console.log('Premier pokémon:', pokemons.value[0]); // AJOUTEZ CETTE LIGNE
+    const response = await fetch("https://pokeapi.co/api/v2/pokemon?limit=151");
+    if (!response.ok) {
+      throw new Error(`Erreur réseau: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const pokemonDetails = await Promise.all(
+      data.results.map(async (item) => {
+        const detailResponse = await fetch(item.url);
+        if (!detailResponse.ok) {
+          throw new Error(`Impossible de charger ${item.name}`);
+        }
+
+        const detail = await detailResponse.json();
+        return {
+          id: detail.id,
+          name: detail.name.charAt(0).toUpperCase() + detail.name.slice(1),
+          image:
+            detail.sprites?.other?.["official-artwork"]?.front_default ||
+            detail.sprites?.front_default ||
+            "",
+          stats: {
+            HP: detail.stats?.[0]?.base_stat ?? 0,
+            attack: detail.stats?.[1]?.base_stat ?? 0,
+            defense: detail.stats?.[2]?.base_stat ?? 0,
+          },
+        };
+      })
+    );
+
+    pokemons.value = pokemonDetails;
   } catch (error) {
     console.error("Error fetching data", error);
+    errorMessage.value = "Impossible de charger les Pokémon pour le moment.";
+    pokemons.value = [];
   } finally {
     loading.value = false;
   }
-});
+};
+
+onMounted(loadPokemons);
 
 const filteredPokemons = computed(() => {
   if (!searchQuery.value) return pokemons.value;
